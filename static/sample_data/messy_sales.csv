@@ -1,0 +1,7 @@
+order_id,customer_name,email,order_date,amount,notes
+1,  Alice  ,ALICE@example.COM,2024/03/01, 100.5 , first order  
+2,Bob,bob@example.com,03-02-2024, , 
+2,Bob , bob@example.com ,2024-03-02, , duplicate row with whitespace
+3,Charlie,charlie[at]example.com,Mar 03 2024,250.00,""
+4, ,dora@example.com,2024-03-04,175.25,
+5,Eve,eve@example.com,2024-03-05,,missing amount

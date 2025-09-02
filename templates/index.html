@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Tale</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <div class="sidebar-content">
+                <h3>⚙️ Settings</h3>
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="send-to-ai" checked>
+                        <span class="checkmark"></span>
+                        Generate AI Executive Summary
+                    </label>
+                    <small>Uses intelligent local analysis - completely free and offline!</small>
+                </div>
+                
+                <hr>
+                <h4>Demo CSV</h4>
+                <a href="{{ url_for('static', filename='sample_data/messy_sales.csv') }}" class="demo-link">Download sample</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <div class="app-title">📊 Data Tale</div>
+            <div class="subtitle">Transform your data into compelling stories — powered by AI 🚀</div>
+
+            <!-- Upload Section -->
+            <div class="upload-section" id="upload-section">
+                <div class="file-upload-area" id="file-upload-area">
+                    <div class="upload-content">
+                        <div class="upload-icon">📁</div>
+                        <h3>Upload a CSV to clean</h3>
+                        <p>Drag and drop your CSV file here or click to browse</p>
+                        <input type="file" id="file-input" accept=".csv" style="display: none;">
+                        <button class="upload-btn" onclick="document.getElementById('file-input').click()">Choose File</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="results-section" id="results-section" style="display: none;">
+                <!-- Metrics -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-value" id="rows-before">0</div>
+                        <div class="metric-label">Rows (before)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="rows-after">0</div>
+                        <div class="metric-label">Rows (after)</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="duplicates-removed">0</div>
+                        <div class="metric-label">Duplicates removed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="columns-count">0</div>
+                        <div class="metric-label">Columns</div>
+                    </div>
+                </div>
+
+                <!-- Column Changes -->
+                <div class="card">
+                    <h3>Column Changes</h3>
+                    <div id="column-changes"></div>
+                </div>
+
+                <!-- Downloads -->
+                <div class="download-section">
+                    <button class="download-btn" onclick="downloadCSV()">⬇️ Download Cleaned CSV</button>
+                    <button class="download-btn" onclick="downloadReport()">⬇️ Download Report (MD)</button>
+                </div>
+
+                <!-- AI Summary -->
+                <div class="card" id="ai-summary-card" style="display: none;">
+                    <h3>🧠 Executive Summary (AI)</h3>
+                    <div id="ai-summary-content"></div>
+                </div>
+                
+                <!-- AI Story Generator -->
+                <div class="card" id="ai-story-card" style="display: none;">
+                    <h3>🤖 AI Story Generator</h3>
+                    <p>Generate narrative reports in different styles using AI</p>
+                    
+                    <div class="story-style-selector">
+                        <label>Choose Story Style:</label>
+                        <select id="story-style" class="form-input">
+                            <option value="executive">📊 Executive Report</option>
+                            <option value="technical">🔬 Technical Analysis</option>
+                            <option value="casual">😊 Friendly Summary</option>
+                        </select>
+                    </div>
+                    
+                    <div class="story-buttons">
+                        <button onclick="generateStory()" class="btn btn-ai">Generate AI Story</button>
+                        <button onclick="downloadStory()" class="btn btn-ai-secondary">Download Story</button>
+                    </div>
+                    
+                    <div id="story-result" class="story-result" style="display: none;">
+                        <h4>AI-Generated Story</h4>
+                        <div id="story-content" class="story-content"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div class="loading-spinner" id="loading-spinner" style="display: none;">
+                <div class="spinner"></div>
+                <p>Processing your data...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // File upload handling
+        const fileInput = document.getElementById('file-input');
+        const fileUploadArea = document.getElementById('file-upload-area');
+        const uploadSection = document.getElementById('upload-section');
+        const resultsSection = document.getElementById('results-section');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        // Drag and drop functionality
+        fileUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.add('dragover');
+        });
+
+        fileUploadArea.addEventListener('dragleave', () => {
+            fileUploadArea.classList.remove('dragover');
+        });
+
+        fileUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            fileUploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+
+        function handleFile(file) {
+            if (!file.name.endsWith('.csv')) {
+                alert('Please upload a CSV file');
+                return;
+            }
+
+            // Show loading spinner
+            uploadSection.style.display = 'none';
+            loadingSpinner.style.display = 'flex';
+
+            const sendToAI = document.getElementById('send-to-ai').checked;
+            
+            console.log('Send to AI:', sendToAI);
+
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('send_to_ai', sendToAI);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                loadingSpinner.style.display = 'none';
+                console.log('Response data:', data);
+                
+                if (data.error) {
+                    alert(data.error);
+                    uploadSection.style.display = 'block';
+                    return;
+                }
+
+                // Display results
+                displayResults(data);
+                resultsSection.style.display = 'block';
+            })
+            .catch(error => {
+                loadingSpinner.style.display = 'none';
+                console.error('Error:', error);
+                alert('Error processing file: ' + error.message);
+                uploadSection.style.display = 'block';
+            });
+        }
+
+        function displayResults(data) {
+            // Update metrics
+            document.getElementById('rows-before').textContent = data.rows_before;
+            document.getElementById('rows-after').textContent = data.rows_after;
+            document.getElementById('duplicates-removed').textContent = data.duplicates_removed;
+            document.getElementById('columns-count').textContent = data.columns.length;
+
+            // Display column changes
+            const columnChangesDiv = document.getElementById('column-changes');
+            columnChangesDiv.innerHTML = '';
+
+            Object.entries(data.summary.column_changes).forEach(([col, info]) => {
+                const hasChanges = Object.values(info).some(v => v !== null && v !== 0 && v !== '' && v !== false);
+                if (hasChanges) {
+                    const columnDiv = document.createElement('div');
+                    columnDiv.className = 'column-change';
+                    columnDiv.innerHTML = `
+                        <details>
+                            <summary><code>${col}</code></summary>
+                            <pre>${JSON.stringify(info, null, 2)}</pre>
+                        </details>
+                    `;
+                    columnChangesDiv.appendChild(columnDiv);
+                }
+            });
+
+            // Display AI summary if available
+            if (data.ai_summary) {
+                document.getElementById('ai-summary-content').innerHTML = data.ai_summary.replace(/\n/g, '<br>');
+                document.getElementById('ai-summary-card').style.display = 'block';
+            } else {
+                document.getElementById('ai-summary-card').style.display = 'none';
+            }
+            
+            // Always show AI story generator when data is available
+            document.getElementById('ai-story-card').style.display = 'block';
+            
+            // Log AI summary status
+            console.log('AI Summary available:', !!data.ai_summary);
+            if (data.ai_summary) {
+                console.log('AI Summary length:', data.ai_summary.length);
+            }
+        }
+
+        function downloadCSV() {
+            window.location.href = '/download/csv';
+        }
+
+        function downloadReport() {
+            window.location.href = '/download/report';
+        }
+
+        function generateStory() {
+            const style = document.getElementById('story-style').value;
+            const storyResult = document.getElementById('story-result');
+            const storyContent = document.getElementById('story-content');
+            
+            // Show loading
+            storyContent.innerHTML = '<div class="loading">Generating AI story...</div>';
+            storyResult.style.display = 'block';
+            
+            fetch('/generate-story', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ style: style })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    storyContent.innerHTML = `<div class="error">Error: ${data.error}</div>`;
+                } else {
+                    // Convert markdown to HTML (simple conversion)
+                    let htmlContent = data.story
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                        .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                        .replace(/^### (.*$)/gm, '<h3>$1</h3>');
+                    
+                    // Handle lists
+                    htmlContent = htmlContent.replace(/^• (.*$)/gm, '<li>$1</li>');
+                    htmlContent = htmlContent.replace(/^(\d+)\. (.*$)/gm, '<li>$2</li>');
+                    
+                    // Wrap consecutive list items in <ul> or <ol>
+                    htmlContent = htmlContent.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
+                    
+                    // Convert remaining newlines to <br>
+                    htmlContent = htmlContent.replace(/\n/g, '<br>');
+                    
+                    storyContent.innerHTML = htmlContent;
+                }
+            })
+            .catch(error => {
+                storyContent.innerHTML = `<div class="error">Error: ${error.message}</div>`;
+            });
+        }
+
+        function downloadStory() {
+            const style = document.getElementById('story-style').value;
+            
+            // Create a form to submit the download request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/download-story';
+            
+            const input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'style';
+            input.value = style;
+            
+            form.appendChild(input);
+            document.body.appendChild(form);
+            form.submit();
+            document.body.removeChild(form);
+        }
+
+        // Reset functionality
+        function resetApp() {
+            uploadSection.style.display = 'block';
+            resultsSection.style.display = 'none';
+            loadingSpinner.style.display = 'none';
+            fileInput.value = '';
+        }
+    </script>
+</body>
+</html>

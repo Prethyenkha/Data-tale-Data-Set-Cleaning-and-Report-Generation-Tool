@@ -1,0 +1,68 @@
+/* Global dark styling */
+:root {
+  --bg: #0b0b0f;
+  --card: #141419;
+  --text: #e6e6f0;
+  --muted: #9aa0a6;
+  --accent: #6c5ce7;
+  --accent-2: #00e5ff;
+  --border: #23232b;
+}
+
+html, body, [data-testid="stAppViewContainer"] {
+  background: radial-gradient(1200px 600px at 10% 10%, rgba(108,92,231,0.07), transparent 40%),
+              radial-gradient(1200px 600px at 90% 10%, rgba(0,229,255,0.07), transparent 40%),
+              var(--bg) !important;
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans";
+}
+
+.app-title {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: white;
+  margin: 0.4rem 0 0.2rem 0;
+  text-shadow: 0 0 24px rgba(108,92,231,0.25);
+}
+
+.subtitle {
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.card {
+  background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 1rem 1.2rem;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+  backdrop-filter: blur(6px);
+}
+
+/* Tweak inputs/buttons */
+section[data-testid="stSidebar"] {
+  background: #0e0e13;
+  border-right: 1px solid var(--border);
+}
+
+.stButton>button, .stDownloadButton>button, .stDownloadButton>div>button {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  border: 0;
+  border-radius: 999px;
+  padding: 0.6rem 1rem;
+  color: white;
+  font-weight: 700;
+  transition: transform 120ms ease;
+}
+.stButton>button:hover, .stDownloadButton>button:hover, .stDownloadButton>div>button:hover {
+  transform: translateY(-1px);
+}
+
+/* Metrics */
+[data-testid="stMetricValue"] {
+  color: white;
+}
+[data-testid="stMetricLabel"] {
+  color: var(--muted);
+}
